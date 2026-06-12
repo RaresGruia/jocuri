@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Web Chess</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <main class="app">
+      <section class="lobby" id="lobby">
+        <div>
+          <p class="eyebrow">Online Multiplayer</p>
+          <h1>Web Chess</h1>
+          <p class="subtitle">Create a room as White or join a friend as Black.</p>
+        </div>
+        <div class="lobby-actions">
+          <button id="createRoom">Create Room</button>
+          <div class="join-row">
+            <input id="roomCodeInput" maxlength="5" placeholder="Room code">
+            <button id="joinRoom">Join Room</button>
+          </div>
+        </div>
+        <p class="message" id="lobbyMessage"></p>
+      </section>
+
+      <section class="game hidden" id="game">
+        <div class="topbar">
+          <div>
+            <p class="eyebrow">Room <span id="roomCode">-----</span></p>
+            <h2 id="playerLabel">Waiting...</h2>
+          </div>
+          <div class="top-actions">
+            <button id="restartGame">New Game</button>
+            <button id="leaveRoom" class="secondary">Leave</button>
+          </div>
+        </div>
+
+        <div class="game-grid">
+          <div class="board-wrap">
+            <div id="board" class="board"></div>
+          </div>
+
+          <aside class="side-panel">
+            <div class="status-card">
+              <span class="status-dot" id="turnDot"></span>
+              <div>
+                <p class="label">Status</p>
+                <strong id="gameStatus">White to move</strong>
+              </div>
+            </div>
+            <p class="message" id="gameMessage"></p>
+
+            <div>
+              <h3>Captured</h3>
+              <p class="label">By White</p>
+              <div class="captured" id="capturedWhite"></div>
+              <p class="label">By Black</p>
+              <div class="captured" id="capturedBlack"></div>
+            </div>
+
+            <div>
+              <h3>Move History</h3>
+              <ol id="history" class="history"></ol>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <div id="promotion" class="promotion hidden">
+        <div class="promotion-box">
+          <h3>Choose promotion</h3>
+          <div class="promotion-options">
+            <button data-piece="Q">Queen</button>
+            <button data-piece="R">Rook</button>
+            <button data-piece="B">Bishop</button>
+            <button data-piece="N">Knight</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>
