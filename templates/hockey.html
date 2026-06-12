@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Online Air Hockey</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='hockey.css') }}">
+  </head>
+  <body>
+    <main class="app">
+      <section id="lobby" class="lobby">
+        <p class="eyebrow">Online 1v1</p>
+        <h1>Air Hockey</h1>
+        <p class="subtitle">Create a room as the left paddle or join as the right paddle.</p>
+        <div class="actions">
+          <button id="createRoom">Create Room</button>
+          <div class="join-row">
+            <input id="roomCodeInput" maxlength="5" placeholder="Room code">
+            <button id="joinRoom">Join Room</button>
+          </div>
+        </div>
+        <p id="lobbyMessage" class="message"></p>
+      </section>
+
+      <section id="game" class="game hidden">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Room <span id="roomCode">-----</span></p>
+            <h2 id="sideLabel">Connecting...</h2>
+          </div>
+          <div class="top-actions">
+            <button id="restartMatch">Restart Match</button>
+            <button id="leaveRoom" class="secondary">Leave</button>
+          </div>
+        </header>
+
+        <section class="scoreboard">
+          <div>
+            <span class="label">Player 1</span>
+            <strong id="leftScore">0</strong>
+          </div>
+          <p id="connectionStatus">Waiting</p>
+          <div>
+            <span class="label">Player 2</span>
+            <strong id="rightScore">0</strong>
+          </div>
+        </section>
+
+        <canvas id="rink" width="960" height="520"></canvas>
+        <p id="gameMessage" class="message"></p>
+      </section>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='hockey.js') }}"></script>
+  </body>
+</html>
