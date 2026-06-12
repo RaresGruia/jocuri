@@ -3,6 +3,8 @@ import random
 import sys
 import math
 import textwrap
+from datetime import datetime
+from pathlib import Path
 
 pygame.init()
 
@@ -422,6 +424,37 @@ def interpretation(card, position, profile):
     )
 
 
+def save_reading(profile, spread_name, positions, cards, interpretations):
+    folder = Path(__file__).resolve().parent / "saved_readings"
+    folder.mkdir(exist_ok=True)
+
+    raw_name = profile["name"].strip() if profile["name"] else "reading"
+    safe_name = "".join(ch if ch.isalnum() else "_" for ch in raw_name).strip("_") or "reading"
+    safe_name = safe_name[:28]
+    filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{safe_name}.txt"
+    path = folder / filename
+
+    lines = [
+        "Tarot Mystic Ultra",
+        f"Salvat: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
+        f"Etalare: {spread_name}",
+        f"Nume: {profile['name'] or 'Fără nume'}",
+        f"Data nașterii: {profile['date'] or 'dată necunoscută'}",
+        f"Zodie: {profile['zodiac'] or 'zodie necunoscută'}",
+        f"Întrebare: {profile['question'] or 'citire generală'}",
+        "",
+    ]
+
+    for i, card in enumerate(cards):
+        orientation = "inversată" if card.reversed else "dreaptă"
+        lines.append(f"{i + 1}. {positions[i]} - {card.data['name']} ({orientation})")
+        lines.append(interpretations[i])
+        lines.append("")
+
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return path
+
+
 def start_screen():
     name_box = InputBox("Nume", (120, 245, 330, 50), "ex: Rareș")
     date_box = InputBox("Data nașterii", (475, 245, 330, 50), "ex: 20.10.2006")
@@ -507,7 +540,7 @@ def start_screen():
         pygame.display.flip()
 
 
-def reading_screen(profile, spread_name):
+def reading_screen_legacy(profile, spread_name):
     positions = SPREADS[spread_name]
     number = len(positions)
 
@@ -632,6 +665,165 @@ def reading_screen(profile, spread_name):
                         revealed += 1
 
                 if show_results:
+                    if menu_button.clicked(event.pos):
+                        start_screen()
+
+                    if restart_button.clicked(event.pos):
+                        reading_screen(profile, spread_name)
+
+        pygame.display.flip()
+
+
+def reading_screen(profile, spread_name):
+    positions = SPREADS[spread_name]
+    number = len(positions)
+
+    chosen = random.sample(DECK, number)
+    cards = []
+
+    if number <= 5:
+        total = number * CARD_W + (number - 1) * 38
+        start_x = WIDTH // 2 - total // 2
+        for i in range(number):
+            cards.append(TarotCard(chosen[i], start_x + i * (CARD_W + 38), 190))
+    else:
+        cols = 5
+        start_x = WIDTH // 2 - (cols * CARD_W + 4 * 36) // 2
+        start_y = 165
+        for i in range(number):
+            row = i // cols
+            col = i % cols
+            cards.append(TarotCard(chosen[i], start_x + col * (CARD_W + 36), start_y + row * 215))
+
+    interpretations = [interpretation(cards[i], positions[i], profile) for i in range(number)]
+    revealed = 0
+    show_results = False
+    selected_index = 0
+    save_status = ""
+    save_status_until = 0
+
+    prev_button = Button("<", (70, 745, 58, 45))
+    next_button = Button(">", (142, 745, 58, 45))
+    save_button = Button("Salvează", (570, 745, 180, 45))
+    menu_button = Button("Meniu", (790, 745, 150, 45))
+    restart_button = Button("Altă citire", (970, 745, 190, 45))
+
+    while True:
+        clock.tick(FPS)
+        mouse = pygame.mouse.get_pos()
+        draw_background()
+
+        title = big_font.render(f"Etalare: {spread_name}", True, GOLD)
+        screen.blit(title, title.get_rect(center=(WIDTH // 2, 40)))
+
+        profile_text = f"{profile['name'] or 'Fără nume'} | {profile['date'] or 'dată necunoscută'} | {profile['zodiac'] or 'zodie necunoscută'}"
+        p = small_font.render(profile_text, True, WHITE)
+        screen.blit(p, p.get_rect(center=(WIDTH // 2, 75)))
+
+        q = small_font.render(f"Întrebare: {profile['question'] or 'citire generală'}", True, WHITE)
+        screen.blit(q, q.get_rect(center=(WIDTH // 2, 102)))
+
+        instr = tiny_font.render("Click pe fiecare carte pentru a o întoarce. Apoi alege o carte pentru interpretare. ESC = meniu.", True, GRAY)
+        screen.blit(instr, instr.get_rect(center=(WIDTH // 2, 125)))
+
+        for i, card in enumerate(cards):
+            label = tiny_font.render(positions[i], True, GOLD)
+            screen.blit(label, label.get_rect(center=(card.x + CARD_W // 2, card.y - 18)))
+            card.update()
+            card.draw()
+            if card.revealed and i == selected_index:
+                glow = card.rect().inflate(14, 14)
+                pygame.draw.rect(screen, GOLD, glow, 3, border_radius=20)
+                pygame.draw.rect(screen, VIOLET, glow.inflate(8, 8), 1, border_radius=24)
+
+        if revealed == number:
+            show_results = True
+
+        if show_results:
+            panel_rect = pygame.Rect(50, 585, 1180, 220)
+            draw_panel(panel_rect)
+
+            selected_card = cards[selected_index]
+            orientation = "inversată" if selected_card.reversed else "dreaptă"
+            left_x = 82
+            top_y = 608
+
+            count_text = tiny_font.render(f"{selected_index + 1}/{number}", True, BLACK)
+            pygame.draw.rect(screen, GOLD, (left_x, top_y, 54, 26), border_radius=13)
+            screen.blit(count_text, count_text.get_rect(center=(left_x + 27, top_y + 13)))
+
+            heading = small_font.render(f"{positions[selected_index]}  |  {selected_card.data['name']} ({orientation})", True, GOLD)
+            screen.blit(heading, (left_x + 70, top_y + 1))
+
+            type_text = tiny_font.render(f"{selected_card.data['type']}  |  {selected_card.data['meaning']}", True, GRAY)
+            screen.blit(type_text, (left_x + 70, top_y + 28))
+
+            pygame.draw.line(screen, VIOLET, (left_x, top_y + 58), (1195, top_y + 58), 1)
+
+            lines = make_wrapped_lines(interpretations[selected_index], 1080, tiny_font)
+            y = top_y + 76
+            for line in lines[:7]:
+                line_img = tiny_font.render(line, True, WHITE)
+                screen.blit(line_img, (left_x, y))
+                y += 18
+
+            for i in range(number):
+                dot_x = 250 + i * 28
+                color = GOLD if i == selected_index else (70, 55, 95)
+                pygame.draw.circle(screen, color, (dot_x, 766), 7)
+                if i == selected_index:
+                    pygame.draw.circle(screen, WHITE, (dot_x, 766), 7, 1)
+
+            if save_status and pygame.time.get_ticks() < save_status_until:
+                saved = tiny_font.render(save_status, True, GREEN)
+                screen.blit(saved, saved.get_rect(center=(WIDTH // 2, 724)))
+
+            prev_button.draw(mouse)
+            next_button.draw(mouse)
+            save_button.draw(mouse)
+            menu_button.draw(mouse)
+            restart_button.draw(mouse)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    start_screen()
+
+                if show_results:
+                    if event.key in (pygame.K_RIGHT, pygame.K_DOWN):
+                        selected_index = (selected_index + 1) % number
+                    elif event.key in (pygame.K_LEFT, pygame.K_UP):
+                        selected_index = (selected_index - 1) % number
+                    elif event.key == pygame.K_s:
+                        path = save_reading(profile, spread_name, positions, cards, interpretations)
+                        save_status = f"Citirea a fost salvată: {path.name}"
+                        save_status_until = pygame.time.get_ticks() + 3500
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                for i, card in enumerate(cards):
+                    if card.rect().collidepoint(event.pos) and not card.target:
+                        card.target = True
+                        revealed += 1
+                        selected_index = i
+                    elif show_results and card.rect().collidepoint(event.pos) and card.revealed:
+                        selected_index = i
+
+                if show_results:
+                    if prev_button.clicked(event.pos):
+                        selected_index = (selected_index - 1) % number
+
+                    if next_button.clicked(event.pos):
+                        selected_index = (selected_index + 1) % number
+
+                    if save_button.clicked(event.pos):
+                        path = save_reading(profile, spread_name, positions, cards, interpretations)
+                        save_status = f"Citirea a fost salvată: {path.name}"
+                        save_status_until = pygame.time.get_ticks() + 3500
+
                     if menu_button.clicked(event.pos):
                         start_screen()
 
